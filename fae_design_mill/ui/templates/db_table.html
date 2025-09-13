@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block body %}
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold">Table: <code class="px-1.5 bg-slate-100 rounded">{{ table }}</code></h1>
+    <a class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" href="/admin/db">Back</a>
+  </div>
+
+  {% if rows|length == 0 %}
+    <p class="text-slate-600">No rows.</p>
+  {% else %}
+  <div class="overflow-x-auto rounded border border-slate-200 bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          {% for c in cols %}
+            <th class="text-left font-medium px-3 py-2">{{ c.name }}</th>
+          {% endfor %}
+          {% if pk %}<th class="text-left font-medium px-3 py-2">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="border-t border-slate-100">
+          {% for c in cols %}
+            {% set v = r[c.name] %}
+            <td class="px-3 py-2 max-w-[32rem] break-words">{{ v }}</td>
+          {% endfor %}
+          {% if pk %}
+            <td class="px-3 py-2">
+              <a class="px-3 py-1.5 inline-block bg-slate-900 text-white rounded hover:bg-slate-800" href="/admin/db/table/{{ table }}/edit/{{ r[pk] }}">Edit</a>
+              <form action="/admin/db/table/{{ table }}/delete/{{ r[pk] }}" method="post" class="inline" onsubmit="return confirm('Delete row?');">
+                <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100">Delete</button>
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="mt-3 flex items-center gap-2 text-sm">
+    <span>Page {{ page }}, limit {{ limit }}, total {{ total }}</span>
+    {% if page > 1 %}<a class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" href="?page={{ page-1 }}&limit={{ limit }}">Prev</a>{% endif %}
+    {% if page*limit < total %}<a class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" href="?page={{ page+1 }}&limit={{ limit }}">Next</a>{% endif %}
+  </div>
+{% endblock %}

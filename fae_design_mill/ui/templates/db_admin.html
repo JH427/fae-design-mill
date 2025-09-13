@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block body %}
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold">DB Admin</h1>
+      <p class="text-slate-600">Manage, back up, and inspect the SQLite database.</p>
+    </div>
+  </div>
+  <div class="bg-white rounded border border-slate-200 p-4 mb-4 text-sm">
+    DB File: <code class="px-1 bg-slate-100 rounded">{{ db_path }}</code>
+  </div>
+  <div class="flex flex-wrap gap-2 mb-6">
+    <form action="/admin/db/backup" method="post"><button class="px-3 py-2 bg-slate-900 text-white rounded hover:bg-slate-800">Backup</button></form>
+    <form action="/admin/db/vacuum" method="post"><button class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100">VACUUM</button></form>
+    <a class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" href="/admin/db/download">Download</a>
+    <a class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" href="/admin/db/sql">Run SQL</a>
+  </div>
+  <div class="overflow-x-auto rounded border border-slate-200 bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr><th class="text-left font-medium px-3 py-2">Table</th><th class="text-left font-medium px-3 py-2">Rows</th><th class="text-left font-medium px-3 py-2">Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for t in tables %}
+        <tr class="border-t border-slate-100">
+          <td class="px-3 py-2"><code class="px-1.5 py-0.5 bg-slate-100 rounded">{{ t.table }}</code></td>
+          <td class="px-3 py-2">{{ t.count }}</td>
+          <td class="px-3 py-2"><a class="px-3 py-1.5 inline-block bg-slate-900 text-white rounded hover:bg-slate-800" href="/admin/db/table/{{ t.table }}">Open</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

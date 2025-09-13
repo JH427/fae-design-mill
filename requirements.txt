@@ -1,0 +1,5 @@
+# Minimal runtime deps. App can run headless without Flask if you only use CLI.
+Flask==3.0.*
+APScheduler==3.10.*
+openai>=1.40.0
+python-dotenv==1.0.*

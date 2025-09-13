@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block body %}
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold">Variables</h1>
+      <p class="text-slate-600">Set per-key modes (LOCKED, WEIGHTED, RANDOM, SEQUENCE, LLM) and defaults.</p>
+    </div>
+    <button class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="preview()">Preview Prompt</button>
+  </div>
+
+  <div class="overflow-x-auto rounded border border-slate-200 bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          <th class="text-left font-medium px-3 py-2">Key Path</th>
+          <th class="text-left font-medium px-3 py-2">Mode</th>
+          <th class="text-left font-medium px-3 py-2">Default Value</th>
+          <th class="text-left font-medium px-3 py-2">LLM Template</th>
+          <th class="text-left font-medium px-3 py-2">Save</th>
+          <th class="text-left font-medium px-3 py-2">List</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr class="border-t border-slate-100">
+          <td class="px-3 py-2"><code class="px-1.5 py-0.5 bg-slate-100 rounded">{{ row.key_path }}</code></td>
+          <td class="px-3 py-2">
+            <select id="mode_{{ loop.index }}" class="border border-slate-300 rounded px-2 py-1 bg-white">
+              {% for m in ['LOCKED','WEIGHTED','RANDOM','SEQUENCE','LLM'] %}
+                <option value="{{m}}" {% if row.mode==m %}selected{% endif %}>{{m}}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2">
+            <input id="def_{{ loop.index }}" class="border border-slate-300 rounded px-2 py-1 w-96" value="{{ row.default_value_str }}"/>
+          </td>
+          <td class="px-3 py-2">
+            <input id="llm_{{ loop.index }}" class="border border-slate-300 rounded px-2 py-1 w-[28rem]" placeholder="Optional LLM template" value="{{ row.llm_template or '' }}"/>
+          </td>
+          <td class="px-3 py-2">
+            <button class="px-3 py-1.5 bg-slate-900 text-white rounded hover:bg-slate-800" onclick="saveRow('{{ row.key_path }}', {{ loop.index }})">Save</button>
+          </td>
+          <td class="px-3 py-2">
+            <div class="flex gap-2">
+              {% if row.key_path in list_names %}
+                <a class="px-3 py-1.5 inline-block bg-white border border-slate-300 rounded hover:bg-slate-100" href="/variables/list/{{ row.key_path | urlencode }}">Manage</a>
+                <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="openQuickAdd('{{ row.key_path }}')">Quick Add</button>
+              {% else %}
+                <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="createListFor('{{ row.key_path }}')">Create list</button>
+                <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="openQuickAdd('{{ row.key_path }}')">Quick Add</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-6 grid gap-6 md:grid-cols-2">
+    <div class="rounded border border-slate-200 bg-white p-4">
+      <h3 class="font-medium mb-3">Provider</h3>
+      <div class="flex items-center gap-3">
+        <div>Current: <code class="px-1.5 py-0.5 bg-slate-100 rounded">{{ provider or 'null' }}</code></div>
+        <select id="provider" class="border border-slate-300 rounded px-2 py-1 bg-white">
+          {% for p in ['null','openai'] %}
+            <option value="{{p}}" {% if (provider or 'null')==p %}selected{% endif %}>{{p}}</option>
+          {% endfor %}
+        </select>
+        <button class="px-3 py-1.5 bg-slate-900 text-white rounded hover:bg-slate-800" onclick="saveProvider()">Save Provider</button>
+      </div>
+    </div>
+
+    <div class="rounded border border-slate-200 bg-white p-4">
+      <h3 class="font-medium mb-3">Create New List</h3>
+      <p class="text-sm text-slate-600 mb-2">Name must match a key path, e.g., <code class="px-1 bg-slate-100 rounded">text.primary</code>, <code class="px-1 bg-slate-100 rounded">subject</code>, <code class="px-1 bg-slate-100 rounded">icons_symbols</code>.</p>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="new_list_name" class="border border-slate-300 rounded px-2 py-1 sm:w-72" placeholder="List name (key path)"/>
+        <input id="new_list_desc" class="border border-slate-300 rounded px-2 py-1 sm:flex-1" placeholder="Description (optional)"/>
+        <button class="px-3 py-1.5 bg-slate-900 text-white rounded hover:bg-slate-800" onclick="createList()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded border border-slate-200 bg-white p-4">
+    <h3 class="font-medium mb-3">Generator Controls</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <label class="text-sm">Prompt dupe threshold (SimHash bits)
+        <input id="pol_prompt_dupe" type="number" class="mt-1 w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. 8">
+      </label>
+      <label class="text-sm">Image dupe threshold (pHash Hamming)
+        <input id="pol_image_dupe" type="number" class="mt-1 w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. 6">
+      </label>
+      <label class="text-sm">Cooldown multiplier
+        <input id="pol_cooldown_mul" type="number" step="0.1" class="mt-1 w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. 1.0">
+      </label>
+      <label class="text-sm">Topic drift rate (0..1)
+        <input id="pol_drift" type="number" step="0.1" class="mt-1 w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. 0.2">
+      </label>
+      <label class="text-sm">Min novelty score
+        <input id="pol_novelty" type="number" step="0.01" class="mt-1 w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. 0.55">
+      </label>
+    </div>
+    <div class="mt-3"><button class="px-3 py-1.5 bg-slate-900 text-white rounded hover:bg-slate-800" onclick="savePolicy()">Save Policy</button></div>
+  </div>
+
+  <div id="out" class="mt-6"></div>
+
+  <section class="mt-6">
+    <h2 class="text-lg font-medium mb-3">Variable Lists</h2>
+    <div class="flex items-center gap-2 mb-2">
+      <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="ensureAllLists()">Ensure lists for all keys</button>
+      <button class="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="seedDefaults()">Seed default options</button>
+    </div>
+    <div id="lists" class="overflow-x-auto rounded border border-slate-200 bg-white"></div>
+  </section>
+
+  <!-- Quick Add Modal -->
+  <div id="qa_overlay" class="hidden fixed inset-0 bg-black/40 z-40"></div>
+  <div id="qa_modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white rounded-lg border border-slate-200 shadow-lg">
+      <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div class="font-medium">Quick Add Items</div>
+        <button class="text-slate-600 hover:text-slate-900" onclick="closeQuickAdd()">✕</button>
+      </div>
+      <div class="p-4">
+        <div class="text-sm text-slate-600 mb-2">Target list: <code id="qa_list_name" class="px-1 bg-slate-100 rounded"></code></div>
+        <div class="text-sm text-slate-600 mb-2">Paste values — one per line, comma-separated, or a JSON array.</div>
+        <textarea id="qa_values" rows="6" class="w-full border border-slate-300 rounded px-2 py-1 mb-3" placeholder="e.g. value one\nvalue two\nvalue three"></textarea>
+        <div class="flex flex-wrap items-center gap-3 mb-3 text-sm">
+          <label>Weight: <input id="qa_weight" type="number" step="0.1" value="1.0" class="border border-slate-300 rounded px-2 py-1 w-24"></label>
+          <label>Cooldown days: <input id="qa_cooldown" type="number" step="1" value="0" class="border border-slate-300 rounded px-2 py-1 w-24"></label>
+          <label class="flex items-center gap-2"><input id="qa_enabled" type="checkbox" checked class="scale-125"> Enabled</label>
+        </div>
+        <div class="mb-3 text-sm">
+          <label>Tags (JSON array):</label>
+          <input id="qa_tags" class="border border-slate-300 rounded px-2 py-1 w-full" placeholder='["tag1","tag2"]'>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-3 py-2 bg-slate-900 text-white rounded hover:bg-slate-800" onclick="quickAddSubmit()">Add</button>
+          <button class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" onclick="closeQuickAdd()">Cancel</button>
+        </div>
+        <div id="qa_out" class="mt-3 text-xs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function saveRow(keyPath, idx) {
+      const mode = document.getElementById('mode_'+idx).value;
+      let defv = document.getElementById('def_'+idx).value;
+      const llm = document.getElementById('llm_'+idx).value;
+      try { defv = defv ? JSON.parse(defv) : null; } catch (e) { /* keep string */ }
+      const res = await fetch('/api/defaults', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key_path: keyPath, mode: mode, default_value: defv, llm_template: llm})});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-yellow-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+    }
+    async function preview() {
+      const res = await fetch('/api/preview', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title: 'Preview'})});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-blue-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+    }
+    async function saveProvider() {
+      const p = document.getElementById('provider').value;
+      const res = await fetch('/api/policy', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({provider: p})});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-green-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+    }
+    async function savePolicy() {
+      const body = {};
+      const pd = document.getElementById('pol_prompt_dupe').value;
+      const idt = document.getElementById('pol_image_dupe').value;
+      const cm = document.getElementById('pol_cooldown_mul').value;
+      const dr = document.getElementById('pol_drift').value;
+      const nv = document.getElementById('pol_novelty').value;
+      if (pd) body.prompt_dupe_threshold = parseInt(pd, 10);
+      if (idt) body.image_dupe_threshold = parseInt(idt, 10);
+      if (cm) body.cooldown_multiplier = parseFloat(cm);
+      if (dr) body.topic_drift_rate = parseFloat(dr);
+      if (nv) body.min_novelty_score = parseFloat(nv);
+      const res = await fetch('/api/policy', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-green-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+    }
+    async function loadLists() {
+      const res = await fetch('/api/variables');
+      const data = await res.json();
+      const lists = data.lists || [];
+      let html = '<table class="min-w-full text-sm"><thead class="bg-slate-50 text-slate-600"><tr><th class="text-left font-medium px-3 py-2">List (key path)</th><th class="text-left font-medium px-3 py-2">Items</th><th class="text-left font-medium px-3 py-2">Actions</th></tr></thead><tbody>';
+      for (const l of lists) {
+        html += `<tr class=\"border-t border-slate-100\"><td class=\"px-3 py-2\"><code class=\"px-1.5 py-0.5 bg-slate-100 rounded\">${l.name}</code></td><td class=\"px-3 py-2\">${l.item_count}</td><td class=\"px-3 py-2 flex gap-2\"><a class=\"px-3 py-1.5 inline-block bg-slate-900 text-white rounded hover:bg-slate-800\" href=\"/variables/list/${encodeURIComponent(l.name)}\">Manage</a><button class=\"px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-100\" onclick=\"openQuickAdd('${l.name}')\">Quick Add</button></td></tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('lists').innerHTML = html;
+    }
+    async function createList() {
+      const name = document.getElementById('new_list_name').value.trim();
+      const description = document.getElementById('new_list_desc').value.trim();
+      if (!name) return alert('Enter a list name');
+      const res = await fetch('/api/variables', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, description})});
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      loadLists();
+    }
+    async function createListFor(keyPath) {
+      const res = await fetch('/api/variables/ensure', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key_path: keyPath})});
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      location.href = '/variables/list/' + encodeURIComponent(keyPath);
+    }
+    async function ensureAllLists() {
+      const res = await fetch('/api/variables/ensure', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-yellow-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+      loadLists();
+    }
+    async function seedDefaults() {
+      if (!confirm('Seed default options across many keys?')) return;
+      const res = await fetch('/api/variables/seed-defaults', {method:'POST'});
+      const data = await res.json();
+      document.getElementById('out').innerHTML = '<pre class="bg-slate-900/90 text-yellow-200 p-3 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>'
+      loadLists();
+    }
+    // Quick Add helpers
+    let qa_target = '';
+    function openQuickAdd(keyPath) {
+      qa_target = keyPath;
+      document.getElementById('qa_list_name').textContent = keyPath;
+      document.getElementById('qa_values').value = '';
+      document.getElementById('qa_weight').value = '1.0';
+      document.getElementById('qa_cooldown').value = '0';
+      document.getElementById('qa_enabled').checked = true;
+      document.getElementById('qa_tags').value = '';
+      document.getElementById('qa_out').innerHTML = '';
+      // ensure list exists silently
+      fetch('/api/variables/ensure', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key_path: keyPath})});
+      document.getElementById('qa_overlay').classList.remove('hidden');
+      document.getElementById('qa_modal').classList.remove('hidden');
+    }
+    function closeQuickAdd() {
+      document.getElementById('qa_overlay').classList.add('hidden');
+      document.getElementById('qa_modal').classList.add('hidden');
+    }
+    async function quickAddSubmit() {
+      const text = document.getElementById('qa_values').value.trim();
+      if (!text) { document.getElementById('qa_out').innerHTML = '<div class="text-red-700">Enter some values.</div>'; return; }
+      let values = [];
+      try { const arr = JSON.parse(text); if (Array.isArray(arr)) values = arr.map(String); } catch(e) {}
+      if (values.length === 0) {
+        // split by newline or comma
+        values = text.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+      }
+      const weight = parseFloat(document.getElementById('qa_weight').value || '1');
+      const cooldown_days = parseInt(document.getElementById('qa_cooldown').value || '0', 10);
+      const enabled = document.getElementById('qa_enabled').checked;
+      let tags = document.getElementById('qa_tags').value.trim();
+      try { tags = tags ? JSON.parse(tags) : []; } catch(e) { tags = []; }
+      const res = await fetch(`/api/variables/${encodeURIComponent(qa_target)}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({values, weight, cooldown_days, enabled, tags})});
+      const data = await res.json();
+      document.getElementById('qa_out').innerHTML = '<pre class="bg-slate-900/90 text-green-200 p-2 rounded overflow-auto">'+JSON.stringify(data, null, 2)+'</pre>';
+      loadLists();
+    }
+    loadLists();
+  </script>
+{% endblock %}

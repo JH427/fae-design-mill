@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block body %}
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold">Edit <code class="px-1.5 bg-slate-100 rounded">{{ table }}</code> row</h1>
+    <a class="px-3 py-2 bg-white border border-slate-300 rounded hover:bg-slate-100" href="/admin/db/table/{{ table }}">Back</a>
+  </div>
+  <form method="post" class="bg-white rounded border border-slate-200 p-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {% for c in cols %}
+        <div>
+          <div class="text-xs text-slate-600 mb-1">{{ c.name }}</div>
+          {% if c.name == pk %}
+            <div class="text-sm"><code class="px-1.5 bg-slate-100 rounded">{{ row[c.name] }}</code></div>
+          {% else %}
+            <input name="{{ c.name }}" value="{{ row[c.name] or '' }}" class="w-full border border-slate-300 rounded px-2 py-1"/>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4">
+      <button class="px-3 py-2 bg-slate-900 text-white rounded hover:bg-slate-800" type="submit">Save</button>
+    </div>
+  </form>
+{% endblock %}

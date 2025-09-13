@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.DS_Store
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# Editors
+.vscode/
+.idea/
+
+# Local env
+.env
+
+# Data & generated assets
+data/fae.db
+data/backups/
+data/assets/
+data/prompts/
+
+# Logs
+*.log
+
+# pyproject/packaging artifacts
+dist/
+build/
+*.egg-info/

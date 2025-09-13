@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FAE Design Mill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <header class="bg-white border-b border-slate-200">
+      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-slate-800">FAE Design Mill</a>
+        <nav class="flex gap-3 text-sm">
+          <a href="/" class="text-slate-600 hover:text-slate-900">Dashboard</a>
+          <a href="/variables" class="text-slate-600 hover:text-slate-900">Variables</a>
+          <a href="/admin/db" class="text-slate-600 hover:text-slate-900">DB Admin</a>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      {% block body %}{% endblock %}
+    </main>
+  </body>
+</html>
