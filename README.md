@@ -18,9 +18,9 @@ Highlights
 - Everything persisted in SQLite; assets and prompts saved to disk
 
 Screens
-- [Dashboard: run cards with live status and image thumbnails](images\dashboard.png)
-- [Variables: per-key modes, provider selection, generator policy, quick list adds](images\variables.png)
-- [DB Admin: browse/edit tables, run SQL (read-only by default), backup/vacuum](images\dbamin.png)
+- [Dashboard: run cards with live status and image thumbnails](images/dashboard.png)
+- [Variables: per-key modes, provider selection, generator policy, quick list adds](images/variables.png)
+- [DB Admin: browse/edit tables, run SQL (read-only by default), backup/vacuum](images/dbadmin.png)
 
 Quick start
 1) Python env and deps
